@@ -6,8 +6,7 @@ import Shader from "./Shader.jsx"
 function App() {
   return (
     <>
-      <Canvas>
-        <color attach="background" args={[0x000000]} />
+      <Canvas gl={{ alpha: false }}>
         <Shader />
       </Canvas>
     </>
