@@ -6,12 +6,7 @@ import Shader from "./Shader.jsx"
 function App() {
   return (
     <>
-      <Canvas
-        camera={{
-          position: [0, 0, 2],
-          fov: 40,
-        }}
-      >
+      <Canvas>
         <color attach="background" args={[0x000000]} />
         <Shader />
       </Canvas>
