@@ -105,7 +105,7 @@ export default function Shader() {
       }
 
       // Update time uniform
-      uniforms.uTime.value = time * 0.001 // Convert to seconds
+      fboQuadRef.current.material.uniforms.uTime.value = time * 0.001 // Convert to seconds
 
       // Step 1: Render the main scene to sourceTarget
       gl.setRenderTarget(sourceTarget)
