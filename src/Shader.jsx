@@ -13,6 +13,7 @@ export default function Shader() {
   const raycastPlaneRef = useRef()
   const fboQuadRef = useRef()
   const finalQuadRef = useRef()
+  const whiteQuadRef = useRef()
   const pointer = new Vector2()
   const animationFrameRef = useRef()
 
@@ -20,6 +21,7 @@ export default function Shader() {
   const sourceTarget = useFBO()
   const targetA = useFBO()
   const targetB = useFBO()
+  const whiteFBO = useFBO()
 
   // Create scenes
   const fboScene = useMemo(() => new Scene(), [])
@@ -28,6 +30,7 @@ export default function Shader() {
     []
   )
   const finalScene = useMemo(() => new Scene(), [])
+  const whiteScene = useMemo(() => new Scene(), [])
 
   // Shader uniforms
   const uniforms = useMemo(
@@ -148,7 +151,6 @@ export default function Shader() {
         </mesh>,
         fboScene
       )}
-
       {/* Final output quad */}
       {createPortal(
         <mesh ref={finalQuadRef}>
@@ -157,13 +159,27 @@ export default function Shader() {
         </mesh>,
         finalScene
       )}
+      {/* white scene */}
+      {createPortal(
+        <>
+          <mesh ref={whiteQuadRef}>
+            <planeGeometry args={[100, 100]} />
+            <meshBasicMaterial color={0xffffff} />
+          </mesh>
+          <mesh>
+            <boxGeometry args={[2, 2]} />
+            <meshBasicMaterial color={0x00ff00} />
+          </mesh>
+        </>,
+        whiteScene
+      )}
 
       {/* Interactive sphere */}
+
       <mesh ref={sphereRef} position={[0, 0, 0]}>
         <sphereGeometry args={[0.1, 20, 20]} />
         <meshBasicMaterial color={0xffffff} />
       </mesh>
-
       {/* Invisible plane for raycasting */}
       <mesh ref={raycastPlaneRef} position={[0, 0, 0]}>
         <planeGeometry args={[100, 100]} />
