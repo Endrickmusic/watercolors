@@ -6,7 +6,7 @@ import Shader from "./Shader.jsx"
 function App() {
   return (
     <>
-      <Canvas gl={{ alpha: false }}>
+      <Canvas gl={{ alpha: false, autoClear: true }} frameloop="never">
         <Shader />
       </Canvas>
     </>
