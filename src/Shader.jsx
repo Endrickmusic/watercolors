@@ -9,7 +9,7 @@ import fragmentShader from "./shader/fragmentFBO.js"
 import { Vector2, Vector4, Scene, OrthographicCamera, DoubleSide } from "three"
 
 export default function Shader() {
-  const { viewport, scene, camera, raycaster, gl } = useThree()
+  const { viewport, scene, camera, raycaster, gl, size } = useThree()
   const sphereRef = useRef()
   const raycastPlaneRef = useRef()
   const fboQuadRef = useRef()
@@ -39,7 +39,7 @@ export default function Shader() {
       uTexture: { value: null },
       uPrev: { value: null },
       uResolution: {
-        value: new Vector4(viewport.width, viewport.height, 1, 1),
+        value: new Vector4(size.width, size.height, 1, 1),
       },
       uTime: { value: 0 },
     }),
