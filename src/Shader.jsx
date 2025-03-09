@@ -1,6 +1,7 @@
 import { useFBO } from "@react-three/drei"
 import { useThree, createPortal } from "@react-three/fiber"
 import { useRef, useMemo, useEffect } from "react"
+import * as THREE from "three"
 
 import vertexShader from "./shader/vertexShader.js"
 import fragmentShader from "./shader/fragmentFBO.js"
@@ -68,11 +69,33 @@ export default function Shader() {
     }
   }, [camera, raycaster])
 
+  // Render white scene once
+  useEffect(() => {
+    gl.setRenderTarget(whiteFBO)
+    gl.clear()
+    gl.render(whiteScene, camera)
+    gl.setRenderTarget(null)
+  }, [gl, whiteScene, camera, whiteFBO])
+
   // Custom animation loop
   useEffect(() => {
-    // References to the ping-pong buffers
-    let currentTargetA = targetA
-    let currentTargetB = targetB
+    // Initialize the first frame with whiteFBO
+    if (targetB && whiteFBO && whiteFBO.texture) {
+      // Copy whiteFBO to targetB for the first frame
+      gl.setRenderTarget(targetB)
+      gl.clear()
+
+      // Create a temporary quad to copy whiteFBO to targetB
+      const tempScene = new Scene()
+      const tempQuad = new THREE.Mesh(
+        new THREE.PlaneGeometry(2, 2),
+        new THREE.MeshBasicMaterial({ map: whiteFBO.texture })
+      )
+      tempScene.add(tempQuad)
+
+      gl.render(tempScene, fboCamera)
+      gl.setRenderTarget(null)
+    }
 
     const animate = (time) => {
       // Skip if refs aren't ready
@@ -84,32 +107,44 @@ export default function Shader() {
       // Update time uniform
       uniforms.uTime.value = time * 0.001 // Convert to seconds
 
-      // Clear and render the main scene to sourceTarget
+      // Step 1: Render the main scene to sourceTarget
       gl.setRenderTarget(sourceTarget)
       gl.clear()
       gl.render(scene, camera)
 
-      // Update shader uniforms
+      // Step 2: Update shader uniforms
+      // Important: We're reading from targetB (previous frame) and sourceTarget (current frame)
       fboQuadRef.current.material.uniforms.uTexture.value = sourceTarget.texture
-      fboQuadRef.current.material.uniforms.uPrev.value = currentTargetB.texture
+      fboQuadRef.current.material.uniforms.uPrev.value = targetB.texture
 
-      // Clear and render the shader pass to targetA
-      gl.setRenderTarget(currentTargetA)
+      // Step 3: Render the shader pass to targetA
+      gl.setRenderTarget(targetA)
       gl.clear()
       gl.render(fboScene, fboCamera)
 
-      // Update the final quad's texture
-      finalQuadRef.current.material.map = currentTargetA.texture
+      // Step 4: Update the final quad's texture with targetA
+      finalQuadRef.current.material.map = targetA.texture
+      finalQuadRef.current.material.needsUpdate = true
 
-      // Clear and render finalScene to the screen
+      // Step 5: Render finalScene to the screen
       gl.setRenderTarget(null)
       gl.clear()
       gl.render(finalScene, fboCamera)
 
-      // Swap buffers for next frame
-      const temp = currentTargetA
-      currentTargetA = currentTargetB
-      currentTargetB = temp
+      // Step 6: Copy targetA to targetB for the next frame
+      // This avoids the feedback loop by ensuring we never read and write to the same texture
+      gl.setRenderTarget(targetB)
+      gl.clear()
+
+      // Create a temporary quad to copy targetA to targetB
+      const tempScene = new Scene()
+      const tempQuad = new THREE.Mesh(
+        new THREE.PlaneGeometry(2, 2),
+        new THREE.MeshBasicMaterial({ map: targetA.texture })
+      )
+      tempScene.add(tempQuad)
+
+      gl.render(tempScene, fboCamera)
 
       // Continue the loop
       animationFrameRef.current = requestAnimationFrame(animate)
@@ -134,6 +169,7 @@ export default function Shader() {
     sourceTarget,
     targetA,
     targetB,
+    whiteFBO,
     uniforms,
   ])
 
@@ -151,6 +187,7 @@ export default function Shader() {
         </mesh>,
         fboScene
       )}
+
       {/* Final output quad */}
       {createPortal(
         <mesh ref={finalQuadRef}>
@@ -159,15 +196,16 @@ export default function Shader() {
         </mesh>,
         finalScene
       )}
-      {/* white scene */}
+
+      {/* White scene */}
       {createPortal(
         <>
           <mesh ref={whiteQuadRef}>
             <planeGeometry args={[100, 100]} />
             <meshBasicMaterial color={0xffffff} />
           </mesh>
-          <mesh>
-            <boxGeometry args={[2, 2]} />
+          <mesh position={[0, 0, 0]}>
+            <boxGeometry args={[1, 1, 1]} />
             <meshBasicMaterial color={0x00ff00} />
           </mesh>
         </>,
@@ -175,11 +213,11 @@ export default function Shader() {
       )}
 
       {/* Interactive sphere */}
-
       <mesh ref={sphereRef} position={[0, 0, 0]}>
         <sphereGeometry args={[0.1, 20, 20]} />
         <meshBasicMaterial color={0xffffff} />
       </mesh>
+
       {/* Invisible plane for raycasting */}
       <mesh ref={raycastPlaneRef} position={[0, 0, 0]}>
         <planeGeometry args={[100, 100]} />
